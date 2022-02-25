@@ -21,3 +21,7 @@ Inspired by brilliant math youtuber 3Blue1Brown, creator of the Manim Python lib
 - self.path_n_samples = 1000
 
 2: Command to render animation is `manim fourierseries.py` 
+
+## Screenshot
+
+[![Video screenshot](/Screenshot_2022-02-25.png)](https://www.youtube.com/watch?v=c-MMb71NMvw)

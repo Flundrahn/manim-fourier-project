@@ -1,4 +1,4 @@
-# Manim Fourier Project
+# manim-fourier-project
 
 Code to draw cool things using the math of complex Fourier-series.
 

@@ -14,8 +14,8 @@ Detailed instructions can be found in the [ManimCE Documentation](https://docs.m
 
 1. Install Python 3.7 or higher
 2. Install Chocolatey package manager
-3. In an elevated PowerShell window, run `choco install manimce`
-4. In an elevated PowerShell window, run `choco install manim-latex` for ability to render LaTeX
+3. In an elevated PowerShell terminal, run `choco install manimce`
+4. In an elevated PowerShell terminal, run `choco install manim-latex` for ability to render LaTeX
 
 ## Usage
 
@@ -25,10 +25,10 @@ Two things to know:
 
 1. Rendering the animation takes time because of the large number of submobjects, therefore default values have been set for a lower fidelity fourier series. To get a path of higher fidelity that more closely resembles the original symbol, set the number of generated vectors to `self.n_vectors = 100`. Optionally one can also play around with decreasing `self.parametric_func_step` and increasing `self.path_n_samples`.
 
-2. Command to render animation is `manim fourierseries.py FourierScene`
-   - optionally add flag `-ql` to render animation in low quality in order to speed up the process, highly recommended while testing
-   - optionally add flag `-qh` to render animation in high quality
-   - optionally add flag `-p` to immediately play animation
+2. Command to render animation is `manim fourierseries.py FourierScene`, optionally add flag
+   - `-ql` to render animation in low quality for speeding up the process, highly recommended while testing
+   - `-qh` to render animation in high quality
+   - `-p` to immediately play animation when finished rendering
 
 ## Screenshot
 

@@ -14,7 +14,11 @@ import numpy as np
 class FourierSceneAbstract(ZoomedScene):
     def __init__(self):
         super().__init__()
-        self.n_vectors = 40
+        self.fourier_symbol_config = {
+            "stroke_width": 1,
+            "fill_opacity": 1,
+            "height": 4,
+        }
         self.vector_config = {
             "buff": 0,
             "max_tip_length_to_length_ratio": 0.25,
@@ -27,11 +31,12 @@ class FourierSceneAbstract(ZoomedScene):
             "stroke_opacity": 0.3,
             "color": WHITE
         }
-        self.cycle_seconds = 3
-        self.parametric_func_step = 0.001 # 1e-4    
+        self.n_vectors = 40
+        self.cycle_seconds = 5
+        self.parametric_func_step = 0.001   
         self.drawn_path_stroke_width = 5
         self.drawn_path_interpolation_config = [0, 1]
-        self.path_n_samples = 1000 # 1e4
+        self.path_n_samples = 1000
         self.freqs = list(range(-self.n_vectors // 2, self.n_vectors // 2 + 1, 1))
         self.freqs.sort(key=abs)
 
@@ -143,33 +148,22 @@ class FourierSceneAbstract(ZoomedScene):
                 width = self.drawn_path_stroke_width * interpolate(broken_path.start_width, broken_path.end_width, (1 - (b % 1)))
             subpath.set_stroke(width=width)
 
+    def get_tex_symbol(self, symbol, color = None):
+        symbol = Tex(symbol, **self.fourier_symbol_config)
+    
+        if (color is not None):
+            symbol.set_color(color)
+
+        return symbol
+
 class FourierScene(FourierSceneAbstract):
     def __init__(self):
         super().__init__()
-        self.fourier_symbol_config = {
-            "stroke_width": 1,
-            "fill_opacity": 1,
-            "height": 4,
-        }
-        self.vector_config = {
-            "buff": 0,
-            "max_tip_length_to_length_ratio": 0.25,
-            "tip_length": 0.15,
-            "max_stroke_width_to_length_ratio": 10,
-            "stroke_width": 1.4
-        }
-        self.circle_config = {
-            "stroke_width": 1,
-            "stroke_opacity": 0.3,
-            "color": WHITE
-        }
-        self.cycle_time = 5                 
-        self.drawn_path_stroke_width = 3
-    def construct(self):
 
+    def construct(self):
         # Symbols to draw
-        symbol1 = Tex("m", **self.fourier_symbol_config).set_color(RED)
-        symbol2 = Tex("e", **self.fourier_symbol_config).set_color(BLUE)
+        symbol1 = self.get_tex_symbol("m", RED)
+        symbol2 = self.get_tex_symbol("e", BLUE)
         group = VGroup(symbol1, symbol2).arrange(RIGHT)
 
         # Fourier series for symbol1
@@ -209,7 +203,8 @@ class FourierScene(FourierSceneAbstract):
             ],
             run_time=2.5,
         )
-        # Must add circles and vectors here or updater will not work
+
+        # Add objects to scene
         self.add( 
             vectors1,
             circles1,
@@ -232,18 +227,18 @@ class FourierScene(FourierSceneAbstract):
         drawn_path2.add_updater(self.update_path)
         self.start_vector_clock()
 
-        self.play(self.slow_factor_tracker.animate.set_value(1), run_time = 0.5*self.cycle_time)
-        self.wait(1 * self.cycle_time)
+        self.play(self.slow_factor_tracker.animate.set_value(1), run_time = 0.5 * self.cycle_seconds)
+        self.wait(1 * self.cycle_seconds)
 
         # Move camera then write text
         self.camera.frame.remove_updater(follow_end_vector)
         self.play(
-            self.camera.frame.animate.set_width(all_mobs.width*1.5).move_to(all_mobs.get_center()),
+            self.camera.frame.animate.set_width(all_mobs.width * 1.5).move_to(all_mobs.get_center()),
             Write(text),
-            run_time = 1 * self.cycle_time,
+            run_time = 1 * self.cycle_seconds,
         )
-        self.wait(0.8*self.cycle_time)
-        self.play(self.slow_factor_tracker.animate.set_value(0), run_time = 0.5*self.cycle_time)
+        self.wait(0.8 * self.cycle_seconds)
+        self.play(self.slow_factor_tracker.animate.set_value(0), run_time = 0.5 * self.cycle_seconds)
         
         # Remove updaters so can animate
         self.stop_vector_clock()
@@ -262,7 +257,7 @@ class FourierScene(FourierSceneAbstract):
             ],
             FadeOut(drawn_path1, drawn_path2),
             FadeIn(symbol1, symbol2),
-            run_time=2.5,
+            run_time = 2.5,
         )
 
         self.wait(3)

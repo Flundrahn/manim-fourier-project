@@ -19,18 +19,16 @@ Detailed instructions can be found in the [ManimCE Documentation](https://docs.m
 
 ## Usage
 
+A parent class `FourierSceneAbstract` contains the logic and default configurations, the concrete parts of the animation are constructed in the child class `FourierScene`.
+
 Two things to know:
 
-1.  Rendering the animation with current settings takes considerable time because of the large number of submobjects. For faster render set:
+1. Rendering the animation takes time because of the large number of submobjects, therefore default values have been set for a lower fidelity fourier series. To get a path of higher fidelity that more closely resembles the original symbol, set the number of generated vectors to `self.n_vectors = 100`. Optionally one can also play around with decreasing `self.parametric_func_step` and increasing `self.path_n_samples`.
 
-    - self.n_vectors = 40
-    - self.parametric_func_step = 0.001
-    - self.path_n_samples = 1000
-
-2.  Command to render animation is `manim fourierseries.py`
-    - optionally add flag `-ql` to render animation in low quality in order to speed up the process
-    - optionally add flag `-qh` to render animation in high quality
-    - optionally add flag `-p` to immediately play animation
+2. Command to render animation is `manim fourierseries.py FourierScene`
+   - optionally add flag `-ql` to render animation in low quality in order to speed up the process, highly recommended while testing
+   - optionally add flag `-qh` to render animation in high quality
+   - optionally add flag `-p` to immediately play animation
 
 ## Screenshot
 

@@ -73,8 +73,7 @@ class FourierSceneAbstract(ZoomedScene):
         ]
         return coefficients
 
-    def get_fourier_vectors(self, symbol):
-        path = self.get_path_from_symbol(symbol)
+    def get_fourier_vectors(self, path):
         coefficients = self.get_fourier_coefs(path)
         
         vectors = VGroup()
@@ -95,9 +94,6 @@ class FourierSceneAbstract(ZoomedScene):
             v.set_angle(v.phase)
             vectors.add(v)
         return vectors
-    
-    def get_path_from_symbol(self, symbol):
-        return symbol.family_members_with_points()[0]
 
     def update_vectors(self, vectors):
             for v in vectors:
@@ -148,6 +144,10 @@ class FourierSceneAbstract(ZoomedScene):
                 width = self.drawn_path_stroke_width * interpolate(broken_path.start_width, broken_path.end_width, (1 - (b % 1)))
             subpath.set_stroke(width=width)
 
+class FourierScene(FourierSceneAbstract):
+    def __init__(self):
+        super().__init__()
+
     def get_tex_symbol(self, symbol, color = None):
         symbol = Tex(symbol, **self.fourier_symbol_config)
     
@@ -156,9 +156,8 @@ class FourierSceneAbstract(ZoomedScene):
 
         return symbol
 
-class FourierScene(FourierSceneAbstract):
-    def __init__(self):
-        super().__init__()
+    def get_path_from_symbol(self, symbol):
+        return symbol.family_members_with_points()[0]
 
     def construct(self):
         # Symbols to draw
@@ -167,12 +166,12 @@ class FourierScene(FourierSceneAbstract):
         group = VGroup(symbol1, symbol2).arrange(RIGHT)
 
         # Fourier series for symbol1
-        vectors1 = self.get_fourier_vectors(symbol1)
+        vectors1 = self.get_fourier_vectors(self.get_path_from_symbol(symbol1))
         circles1 = self.get_circles(vectors1)
         drawn_path1 = self.get_drawn_path(vectors1).set_color(RED)
 
         # Fourier series for symbol2
-        vectors2 = self.get_fourier_vectors(symbol2)
+        vectors2 = self.get_fourier_vectors(self.get_path_from_symbol(symbol2))
         circles2 = self.get_circles(vectors2)
         drawn_path2 = self.get_drawn_path(vectors2).set_color(BLUE)
 

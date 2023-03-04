@@ -11,11 +11,10 @@ import numpy as np
 
 # config.use_opengl_renderer = True
 
-# Abstract scene
-class FourierScene(ZoomedScene):
+class FourierSceneAbstract(ZoomedScene):
     def __init__(self):
         super().__init__()
-        self.n_vectors = 100
+        self.n_vectors = 40
         self.vector_config = {
             "buff": 0,
             "max_tip_length_to_length_ratio": 0.25,
@@ -28,15 +27,15 @@ class FourierScene(ZoomedScene):
             "stroke_opacity": 0.3,
             "color": WHITE
         }
-        self.cycle_time = 3 # Seconds
-        self.parametric_func_step = 1e-4    
+        self.cycle_seconds = 3
+        self.parametric_func_step = 0.001 # 1e-4    
         self.drawn_path_stroke_width = 5
-        self.interpolate_config = [0, 1]    # Width of drawn path at end and beginning respectively
-        self.path_n_samples = 1e4
+        self.drawn_path_interpolation_config = [0, 1]
+        self.path_n_samples = 1000 # 1e4
         self.freqs = list(range(-self.n_vectors // 2, self.n_vectors // 2 + 1, 1))
-        self.freqs.sort(key=abs)            # NOTE moved freqs to be property of scene, so need only be calculated once, 
+        self.freqs.sort(key=abs)
 
-    def setup(self):                        # Manim calls setup, unsure why valuetrackers kept here, is it so able to call on from methods within class?
+    def setup(self):
         super().setup()
         self.vector_clock = ValueTracker()
         self.slow_factor_tracker = ValueTracker(0)
@@ -44,7 +43,7 @@ class FourierScene(ZoomedScene):
 
     def start_vector_clock(self):           # This updates vector_clock to follow the add_updater parameter dt
         self.vector_clock.add_updater(
-            lambda t, dt: t.increment_value(dt * self.slow_factor_tracker.get_value() / self.cycle_time)
+            lambda t, dt: t.increment_value(dt * self.slow_factor_tracker.get_value() / self.cycle_seconds)
         )
 
     def stop_vector_clock(self):
@@ -53,12 +52,13 @@ class FourierScene(ZoomedScene):
     def get_fourier_coefs(self, path):
         dt = 1 / self.path_n_samples
         t_range = np.arange(0, 1, dt)
-        # Sample points
+
         points = np.array([
             path.point_from_proportion(t)
             for t in t_range
         ])
         complex_points = points[:, 0] + 1j * points[:, 1]
+
         coefficients = [
             np.sum(np.array([
                 c_point * np.exp(-TAU * 1j * freq * t) * dt
@@ -68,15 +68,16 @@ class FourierScene(ZoomedScene):
         ]
         return coefficients
 
-    def get_fourier_vectors(self, path):
+    def get_fourier_vectors(self, symbol):
+        path = self.get_path_from_symbol(symbol)
         coefficients = self.get_fourier_coefs(path)
+        
         vectors = VGroup()
         v_is_first_vector = True
         for coef, freq in zip(coefficients,self.freqs):
             v = Vector([np.real(coef), np.imag(coef)], **self.vector_config)
-            # Center function to position at tip of last vector
             if v_is_first_vector:
-                center_func = VectorizedPoint(ORIGIN).get_location
+                center_func = VectorizedPoint(ORIGIN).get_location # Function to center position at tip of last vector
                 v_is_first_vector = False
             else:
                 center_func = last_v.get_end
@@ -89,6 +90,9 @@ class FourierScene(ZoomedScene):
             v.set_angle(v.phase)
             vectors.add(v)
         return vectors
+    
+    def get_path_from_symbol(self, symbol):
+        return symbol.family_members_with_points()[0]
 
     def update_vectors(self, vectors):
             for v in vectors:
@@ -96,7 +100,7 @@ class FourierScene(ZoomedScene):
                 v.shift(v.center_func()-v.get_start())
                 v.set_angle(v.phase + time * v.freq * TAU)  # NOTE Rotate() did not work here for unknown reason, probably related to how manin handles updaters
               
-    def get_circles(self, vectors):                         # TODO Add circle config as argument
+    def get_circles(self, vectors):
         circles = VGroup()
         for v in vectors:
             c = Circle(radius = v.get_length(), **self.circle_config)
@@ -123,8 +127,8 @@ class FourierScene(ZoomedScene):
         vector_sum_path = ParametricFunction(fourier_series_func, t_range = t_range)
         broken_path = CurvesAsSubmobjects(vector_sum_path)
         broken_path.stroke_width = 0
-        broken_path.start_width = self.interpolate_config[0]
-        broken_path.end_width = self.interpolate_config[1]
+        broken_path.start_width = self.drawn_path_interpolation_config[0]
+        broken_path.end_width = self.drawn_path_interpolation_config[1]
         return broken_path
 
     def update_path(self, broken_path):
@@ -136,11 +140,10 @@ class FourierScene(ZoomedScene):
             if b < 0:
                 width = 0
             else:
-                width = self.drawn_path_stroke_width * interpolate(broken_path.start_width, broken_path.end_width, (1 - (b % 1)))   # % is b modulo 1, returns the value of b wrapped around 1, so that path width resets after one cycle
+                width = self.drawn_path_stroke_width * interpolate(broken_path.start_width, broken_path.end_width, (1 - (b % 1)))
             subpath.set_stroke(width=width)
 
-# FOURIER ANIMATION TEST SCENE
-class FourierAnimation(FourierScene):
+class FourierScene(FourierSceneAbstract):
     def __init__(self):
         super().__init__()
         self.fourier_symbol_config = {
@@ -169,17 +172,13 @@ class FourierAnimation(FourierScene):
         symbol2 = Tex("e", **self.fourier_symbol_config).set_color(BLUE)
         group = VGroup(symbol1, symbol2).arrange(RIGHT)
 
-        # Get paths
-        path1 = symbol1.family_members_with_points()[0]     # IDEA to only input symbol, put this part in superclass 
-        path2 = symbol2.family_members_with_points()[0]
-
         # Fourier series for symbol1
-        vectors1 = self.get_fourier_vectors(path1)
+        vectors1 = self.get_fourier_vectors(symbol1)
         circles1 = self.get_circles(vectors1)
         drawn_path1 = self.get_drawn_path(vectors1).set_color(RED)
 
         # Fourier series for symbol2
-        vectors2 = self.get_fourier_vectors(path2)
+        vectors2 = self.get_fourier_vectors(symbol2)
         circles2 = self.get_circles(vectors2)
         drawn_path2 = self.get_drawn_path(vectors2).set_color(BLUE)
 
@@ -210,7 +209,7 @@ class FourierAnimation(FourierScene):
             ],
             run_time=2.5,
         )
-        # Not sure why but need to add circles and vectors here or updater will not work
+        # Must add circles and vectors here or updater will not work
         self.add( 
             vectors1,
             circles1,
@@ -246,7 +245,7 @@ class FourierAnimation(FourierScene):
         self.wait(0.8*self.cycle_time)
         self.play(self.slow_factor_tracker.animate.set_value(0), run_time = 0.5*self.cycle_time)
         
-        # Remove all updaters so can animate
+        # Remove updaters so can animate
         self.stop_vector_clock()
         drawn_path1.clear_updaters()
         drawn_path2.clear_updaters()

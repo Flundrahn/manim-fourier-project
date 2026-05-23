@@ -1,4 +1,5 @@
 /media/
 /__pycache__/
+/.venv/
 pip.log
 todo.md

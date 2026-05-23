@@ -116,7 +116,7 @@ class FourierSceneAbstract(mn.ZoomedScene):
         for c in circles:
             c.move_to(c.center_func())
             
-    def get_drawn_path(self, vectors):    # TODO Find out application of None, is for placeholder, may be how keyword argument default is set
+    def get_drawn_path(self, vectors):
 
         def fourier_series_func(t):
             fss = np.sum(np.array([

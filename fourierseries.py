@@ -46,13 +46,15 @@ class FourierSceneAbstract(ZoomedScene):
         self.slow_factor_tracker = ValueTracker(0)
         self.add(self.vector_clock)
 
-    def start_vector_clock(self):           # This updates vector_clock to follow the add_updater parameter dt
-        self.vector_clock.add_updater(
-            lambda t, dt: t.increment_value(dt * self.slow_factor_tracker.get_value() / self.cycle_seconds)
-        )
+    def vector_clock_time_updater(self, t, dt):
+        scaled_dt = dt * self.slow_factor_tracker.get_value() / self.cycle_seconds
+        t.increment_value(scaled_dt)
+
+    def start_vector_clock(self):           
+        self.vector_clock.add_updater(self.vector_clock_time_updater)
 
     def stop_vector_clock(self):
-        self.vector_clock.remove_updater(self.start_vector_clock)
+        self.vector_clock.remove_updater(self.vector_clock_time_updater)
 
     def get_fourier_coefs(self, path):
         dt = 1 / self.path_n_samples

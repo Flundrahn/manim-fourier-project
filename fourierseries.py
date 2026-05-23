@@ -126,7 +126,7 @@ class FourierSceneAbstract(mn.ZoomedScene):
             real_fss = np.array([np.real(fss), np.imag(fss), 0])
             return real_fss
         
-        t_range = np.array([0, 1, self.parametric_func_step])
+        t_range = (0, 1, self.parametric_func_step)
         vector_sum_path = mn.ParametricFunction(fourier_series_func, t_range = t_range)
         broken_path = mn.CurvesAsSubmobjects(vector_sum_path)
         broken_path.stroke_width = 0

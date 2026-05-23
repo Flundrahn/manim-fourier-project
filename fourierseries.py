@@ -3,7 +3,7 @@
 # Theorem of Beethoven link:    https://www.youtube.com/watch?v=2tTshwWTEic
 # Adapted from CairoManim to ManimCE
 # Inspired by brilliant math youtuber 3Blue1Brown, creator of the Manim Python library:
-# 3lue1Brown link:              https://www.youtube.com/watch?v=r6sGWTCMz2k
+# 3Blue1Brown link:              https://www.youtube.com/watch?v=r6sGWTCMz2k
 
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ class FourierSceneAbstract(mn.ZoomedScene):
     def stop_vector_clock(self) -> None:
         self.vector_clock.remove_updater(self.vector_clock_time_updater)
 
-    def get_fourier_coefs(self, path: "mn.VMobject") -> list[complex]:
+    def get_fourier_coefficients(self, path: "mn.VMobject") -> list[complex]:
         """Compute Fourier coefficients for the given `path`.
 
         Samples the path at `self.path_n_samples` points and produces complex
@@ -96,7 +96,7 @@ class FourierSceneAbstract(mn.ZoomedScene):
         Each produced vector has attributes `.freq`, `.coef`, `.phase`, and
         `.center_func` so that other helpers can position and animate them.
         """
-        coefficients = self.get_fourier_coefs(path)
+        coefficients = self.get_fourier_coefficients(path)
 
         vectors = mn.VGroup()
         v_is_first_vector = True
@@ -125,7 +125,7 @@ class FourierSceneAbstract(mn.ZoomedScene):
         for v in vectors:
             time = self.vector_clock.get_value()
             v.shift(v.center_func()-v.get_start())
-            v.set_angle(v.phase + time * v.freq * mn.TAU)  # NOTE Rotate() did not work here for unknown reason, probably related to how manin handles updaters
+            v.set_angle(v.phase + time * v.freq * mn.TAU)  # NOTE Rotate() did not work here for unknown reason, probably related to how manim handles updaters
               
     def get_circles(self, vectors: "mn.VGroup") -> "mn.VGroup":
         """Create circles centered on each vector start."""
@@ -185,7 +185,7 @@ class FourierScene(FourierSceneAbstract):
     def get_tex_symbol(self, symbol: str, color: "mn.ManimColor" = None) -> "mn.Tex":
         symbol = mn.Tex(symbol, **self.fourier_symbol_config)
     
-        if (color is not None):
+        if color is not None:
             symbol.set_color(color)
 
         return symbol

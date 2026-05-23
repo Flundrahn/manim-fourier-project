@@ -12,9 +12,7 @@ import numpy as np
 from typing import  Iterable 
 # import timeit
 
-# config.use_opengl_renderer = True
-
-class FourierSceneAbstract(mn.ZoomedScene):
+class FourierSceneAbstract(mn.Scene):
     """Base scene for Fourier visualizations.
 
     Provides helpers to compute Fourier coefficients from a path, create the
@@ -22,8 +20,8 @@ class FourierSceneAbstract(mn.ZoomedScene):
     produced by the vector sum.
     """
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.fourier_symbol_config = {
             "stroke_width": 1,
             "fill_opacity": 1,
@@ -142,7 +140,7 @@ class FourierSceneAbstract(mn.ZoomedScene):
         for c in circles:
             c.move_to(c.center_func())
             
-    def get_drawn_path(self, vectors: Iterable["mn.Vector"]) -> "mn.CurvesAsSubmobjects":
+    def get_drawn_path(self, vectors: Iterable["mn.Vector"]):
         """Compute the path traced by summing the Fourier vectors.
 
         `vectors` should be a `VGroup` where each element exposes `.coef` and
@@ -159,28 +157,26 @@ class FourierSceneAbstract(mn.ZoomedScene):
         
         t_range = (0, 1, self.parametric_func_step)
         vector_sum_path = mn.ParametricFunction(fourier_series_func, t_range = t_range)
-        broken_path = mn.CurvesAsSubmobjects(vector_sum_path)
-        broken_path.stroke_width = 0
-        broken_path.start_width = self.drawn_path_interpolation_config[0]
-        broken_path.end_width = self.drawn_path_interpolation_config[1]
-        return broken_path
 
-    def update_path(self, broken_path: "mn.CurvesAsSubmobjects") -> None:
-        """Reveal the broken path by interpolating stroke width."""
+        # Return the computed ParametricFunction for the drawn path.
+        vector_sum_path.stroke_width = 0
+        return vector_sum_path
+
+    def update_path(self, broken_path) -> None:
+        """Reveal the drawn path (ParametricFunction).
+
+        Sets a uniform stroke width based on the current vector-clock alpha.
+        """
         alpha = self.vector_clock.get_value()
-        n_curves = len(broken_path)
-        alpha_range = np.linspace(0, 1, n_curves)
-        for a, subpath in zip(alpha_range, broken_path):
-            b = (alpha - a)
-            if b < 0:
-                width = 0
-            else:
-                width = self.drawn_path_stroke_width * mn.interpolate(broken_path.start_width, broken_path.end_width, (1 - (b % 1)))
-            subpath.set_stroke(width=width)
+        width = 0 if alpha <= 0 else self.drawn_path_stroke_width
+        try:
+            broken_path.set_stroke(width=width)
+        except Exception:
+            pass
 
 class FourierScene(FourierSceneAbstract):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def get_tex_symbol(self, symbol: str, color: "mn.ManimColor" = None) -> "mn.Tex":
         symbol = mn.Tex(symbol, **self.fourier_symbol_config)
@@ -247,11 +243,15 @@ class FourierScene(FourierSceneAbstract):
             drawn_path2.set_stroke(width = 0),
         )
 
-        # Camera move
-        self.play(self.camera.frame.animate.scale(0.3).move_to(last_vector.get_end()), run_time = 2)
+        # Camera move: animate the scene group instead of camera.frame.
+        # Zoom by scaling the group (camera.frame.scale(0.3) ~ group.scale(1/0.3)).
+        zoom_scale = 1 / 0.3
+        self.play(all_mobs.animate.scale(zoom_scale).move_to(last_vector.get_end()), run_time=2)
 
-        # Add updaters and start vector clock
-        self.camera.frame.add_updater(follow_end_vector)
+        # Add updaters and start vector clock: keep the scene group centered on the last vector
+        def _follow_group(m):
+            m.move_to(last_vector.get_end())
+        all_mobs.add_updater(_follow_group)
         vectors1.add_updater(self.update_vectors)
         circles1.add_updater(self.update_circles)
         vectors2.add_updater(self.update_vectors)
@@ -264,12 +264,16 @@ class FourierScene(FourierSceneAbstract):
         self.wait(1 * self.cycle_seconds)
 
         # Move camera then write text
-        self.camera.frame.remove_updater(follow_end_vector)
-        self.play(
-            self.camera.frame.animate.set_width(all_mobs.width * 1.5).move_to(all_mobs.get_center()),
-            mn.Write(text),
-            run_time = 1 * self.cycle_seconds,
-        )
+        # Remove camera updater; use all_mobs movement instead of camera.frame animations
+        try:
+            all_mobs.remove_updater(_follow_group)
+        except Exception:
+            pass
+
+        # Move group to center, then write text (separate plays to avoid
+        # interpolation shape-mismatch when combining animations).
+        self.play(all_mobs.animate.move_to(all_mobs.get_center()), run_time=1 * self.cycle_seconds)
+        self.play(mn.Write(text), run_time=1 * self.cycle_seconds)
         self.wait(0.8 * self.cycle_seconds)
         self.play(self.slow_factor_tracker.animate.set_value(0), run_time = 0.5 * self.cycle_seconds)
         

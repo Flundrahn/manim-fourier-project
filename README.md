@@ -25,7 +25,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt # This may take a while
 ```
 
-If using POSIX (macOS / Linux):
+Or if using POSIX (macOS / Linux):
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,6 +48,10 @@ Alternative flags for this command are:
 A parent class `FourierSceneAbstract` contains the logic and default configurations, the concrete parts of the animation are constructed in the child class `FourierScene`.
 
 Rendering the animation takes time because of the large number of submobjects, therefore default values have been set for a lower fidelity fourier series. To get a path of higher fidelity that more closely resembles the original symbol, set the number of generated vectors to `self.n_vectors = 100`. Optionally one can also play around with decreasing `self.parametric_func_step` and increasing `self.path_n_samples`.
+
+### Attempts to use OpenGL rendering
+
+I attempted to use the ManimCE [OpenGL rendering](https://docs.manim.community/en/stable/faq/opengl.html) but ran into a while host of issues, if someone knows how to convert this script to be compatible with the OpenGL renderer
 
 ## Screenshot
 

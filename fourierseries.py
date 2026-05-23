@@ -5,14 +5,24 @@
 # Inspired by brilliant math youtuber 3Blue1Brown, creator of the Manim Python library:
 # 3lue1Brown link:              https://www.youtube.com/watch?v=r6sGWTCMz2k
 
+from __future__ import annotations
+
 import manim as mn
 import numpy as np
+from typing import  Iterable 
 # import timeit
 
 # config.use_opengl_renderer = True
 
 class FourierSceneAbstract(mn.ZoomedScene):
-    def __init__(self):
+    """Base scene for Fourier visualizations.
+
+    Provides helpers to compute Fourier coefficients from a path, create the
+    rotating vectors and their companion circles, and build the drawn path
+    produced by the vector sum.
+    """
+
+    def __init__(self) -> None:
         super().__init__()
         self.fourier_symbol_config = {
             "stroke_width": 1,
@@ -40,23 +50,28 @@ class FourierSceneAbstract(mn.ZoomedScene):
         self.freqs = list(range(-self.n_vectors // 2, self.n_vectors // 2 + 1, 1))
         self.freqs.sort(key=abs)
 
-    def setup(self):
+    def setup(self) -> None:
         super().setup()
         self.vector_clock = mn.ValueTracker()
         self.slow_factor_tracker = mn.ValueTracker(0)
         self.add(self.vector_clock)
 
-    def vector_clock_time_updater(self, t, dt):
+    def vector_clock_time_updater(self, t: "mn.ValueTracker", dt: float) -> None:
         scaled_dt = dt * self.slow_factor_tracker.get_value() / self.cycle_seconds
         t.increment_value(scaled_dt)
 
-    def start_vector_clock(self):           
+    def start_vector_clock(self) -> None:
         self.vector_clock.add_updater(self.vector_clock_time_updater)
 
-    def stop_vector_clock(self):
+    def stop_vector_clock(self) -> None:
         self.vector_clock.remove_updater(self.vector_clock_time_updater)
 
-    def get_fourier_coefs(self, path):
+    def get_fourier_coefs(self, path: "mn.VMobject") -> list[complex]:
+        """Compute Fourier coefficients for the given `path`.
+
+        Samples the path at `self.path_n_samples` points and produces complex
+        coefficients ordered according to `self.freqs`.
+        """
         dt = 1 / self.path_n_samples
         t_range = np.arange(0, 1, dt)
 
@@ -75,9 +90,14 @@ class FourierSceneAbstract(mn.ZoomedScene):
         ]
         return coefficients
 
-    def get_fourier_vectors(self, path):
+    def get_fourier_vectors(self, path: "mn.VMobject") -> "mn.VGroup":
+        """Create a `VGroup` of vectors from Fourier coefficients for `path`.
+
+        Each produced vector has attributes `.freq`, `.coef`, `.phase`, and
+        `.center_func` so that other helpers can position and animate them.
+        """
         coefficients = self.get_fourier_coefs(path)
-        
+
         vectors = mn.VGroup()
         v_is_first_vector = True
         for coef, freq in zip(coefficients,self.freqs):
@@ -97,13 +117,18 @@ class FourierSceneAbstract(mn.ZoomedScene):
             vectors.add(v)
         return vectors
 
-    def update_vectors(self, vectors):
-            for v in vectors:
-                time = self.vector_clock.get_value()
-                v.shift(v.center_func()-v.get_start())
-                v.set_angle(v.phase + time * v.freq * mn.TAU)  # NOTE Rotate() did not work here for unknown reason, probably related to how manin handles updaters
+    def update_vectors(self, vectors: "mn.VGroup") -> None:
+        """Updater to reposition and rotate vectors each frame.
+
+        Intended to be added as an updater to a `VGroup` of vectors.
+        """
+        for v in vectors:
+            time = self.vector_clock.get_value()
+            v.shift(v.center_func()-v.get_start())
+            v.set_angle(v.phase + time * v.freq * mn.TAU)  # NOTE Rotate() did not work here for unknown reason, probably related to how manin handles updaters
               
-    def get_circles(self, vectors):
+    def get_circles(self, vectors: "mn.VGroup") -> "mn.VGroup":
+        """Create circles centered on each vector start."""
         circles = mn.VGroup()
         for v in vectors:
             c = mn.Circle(radius = v.get_length(), **self.circle_config)
@@ -112,11 +137,17 @@ class FourierSceneAbstract(mn.ZoomedScene):
             circles.add(c)
         return circles
 
-    def update_circles(self, circles):
+    def update_circles(self, circles: "mn.VGroup") -> None:
+        """Updater to move each circle to its stored `center_func` location."""
         for c in circles:
             c.move_to(c.center_func())
             
-    def get_drawn_path(self, vectors):
+    def get_drawn_path(self, vectors: Iterable["mn.Vector"]) -> "mn.CurvesAsSubmobjects":
+        """Compute the path traced by summing the Fourier vectors.
+
+        `vectors` should be a `VGroup` where each element exposes `.coef` and
+        `.freq`. The result is suitable for progressive reveal via an updater.
+        """
 
         def fourier_series_func(t):
             fss = np.sum(np.array([
@@ -134,7 +165,8 @@ class FourierSceneAbstract(mn.ZoomedScene):
         broken_path.end_width = self.drawn_path_interpolation_config[1]
         return broken_path
 
-    def update_path(self, broken_path):
+    def update_path(self, broken_path: "mn.CurvesAsSubmobjects") -> None:
+        """Reveal the broken path by interpolating stroke width."""
         alpha = self.vector_clock.get_value()
         n_curves = len(broken_path)
         alpha_range = np.linspace(0, 1, n_curves)
@@ -150,7 +182,7 @@ class FourierScene(FourierSceneAbstract):
     def __init__(self):
         super().__init__()
 
-    def get_tex_symbol(self, symbol, color = None):
+    def get_tex_symbol(self, symbol: str, color: "mn.ManimColor" = None) -> "mn.Tex":
         symbol = mn.Tex(symbol, **self.fourier_symbol_config)
     
         if (color is not None):
@@ -158,10 +190,10 @@ class FourierScene(FourierSceneAbstract):
 
         return symbol
 
-    def get_path_from_symbol(self, symbol):
+    def get_path_from_symbol(self, symbol: "mn.Tex") -> "mn.VMobject":
         return symbol.family_members_with_points()[0]
 
-    def construct(self):
+    def construct(self) -> None:
         # Symbols to draw
         symbol1 = self.get_tex_symbol("m", mn.RED)
         symbol2 = self.get_tex_symbol("e", mn.BLUE)
@@ -186,7 +218,7 @@ class FourierScene(FourierSceneAbstract):
         # Camera updater
         last_vector = vectors1[-1]
 
-        def follow_end_vector(camera): 
+        def follow_end_vector(camera: "mn.Camera") -> None: 
             camera.move_to(last_vector.get_end())
 
         # Scene start
